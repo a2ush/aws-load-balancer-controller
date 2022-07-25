@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"inet.af/netaddr"
 	"time"
+
+	"inet.af/netaddr"
 
 	"k8s.io/client-go/tools/record"
 
@@ -362,7 +363,7 @@ func (m *defaultResourceManager) updatePodAsHealthyForDeletedTGB(ctx context.Con
 	return nil
 }
 
-func (m *defaultResourceManager) deregisterTargets(ctx context.Context, tgARN string, targets []TargetInfo) error {
+func (m *defaultResourceManager) deregisterTargets(ctx context.Context, tgARN string, targets []ListTargets) error {
 	sdkTargets := make([]elbv2sdk.TargetDescription, 0, len(targets))
 	for _, target := range targets {
 		sdkTargets = append(sdkTargets, target.Target)
@@ -394,6 +395,16 @@ func (m *defaultResourceManager) registerPodEndpoints(ctx context.Context, tgARN
 			return err
 		}
 		if !networking.IsIPWithinCIDRs(podIP, vpcCIDRs) {
+			target.AvailabilityZone = awssdk.String("all")
+		}
+
+		tgInfo, err := m.targetsManager.DescribeTargetGroup(tgARN)
+		if err != nil {
+			return err
+		}
+		fmt.Println("tgInfo : " + tgInfo)
+		fmt.Println("tgInfo.TargetGroups[0].VpcId : " + tgInfo.TargetGroups[0].VpcId)
+		if tgInfo.TargetGroups[0].VpcId != m.vpcID {
 			target.AvailabilityZone = awssdk.String("all")
 		}
 		sdkTargets = append(sdkTargets, target)

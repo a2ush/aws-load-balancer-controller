@@ -2,13 +2,14 @@ package targetgroupbinding
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	elbv2sdk "github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/cache"
 	"sigs.k8s.io/aws-load-balancer-controller/pkg/aws/services"
-	"sync"
-	"time"
 )
 
 const (
@@ -27,6 +28,9 @@ type TargetsManager interface {
 
 	// List Targets from TargetGroup.
 	ListTargets(ctx context.Context, tgARN string) ([]TargetInfo, error)
+
+	// Describe TargetGroup.
+	DescribeTargetGroup(ctx context.Context, tgARN string) ([]TargetGroupInfo, error)
 }
 
 // NewCachedTargetsManager constructs new cachedTargetsManager
@@ -143,6 +147,19 @@ func (m *cachedTargetsManager) ListTargets(ctx context.Context, tgARN string) ([
 	}
 	m.targetsCache.Set(tgARN, targetsCacheItem, m.targetsCacheTTL)
 	return cloneTargetInfoSlice(refreshedTargets), nil
+}
+
+func (m *cachedTargetsManager) DescribeTargetGroup(ctx context.Context, tgARN string) ([]TargetGroupInfo, error) {
+	req := &elbv2sdk.DescribeTargetGroupsInput{
+		TargetGroupArns: []*string{
+			aws.String(tgARN),
+		},
+	}
+	res, err := m.elbv2Client.DescribeTargetGroups(req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // refreshAllTargets will refresh all targets for targetGroup.
