@@ -397,14 +397,11 @@ func (m *defaultResourceManager) registerPodEndpoints(ctx context.Context, tgARN
 		if !networking.IsIPWithinCIDRs(podIP, vpcCIDRs) {
 			target.AvailabilityZone = awssdk.String("all")
 		}
-
 		tgInfo, err := m.targetsManager.DescribeTargetGroup(tgARN)
 		if err != nil {
 			return err
 		}
-		fmt.Println("tgInfo : ", *tgInfo)
-		fmt.Println("tgInfo.TargetGroups[0].VpcId : ", *(tgInfo.TargetGroups[0].VpcId))
-		if *(tgInfo.TargetGroups[0].VpcId) != m.vpcID {
+		if *tgInfo.VpcId != m.vpcID {
 			target.AvailabilityZone = awssdk.String("all")
 		}
 		sdkTargets = append(sdkTargets, target)
