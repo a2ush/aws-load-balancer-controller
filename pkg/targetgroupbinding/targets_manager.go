@@ -30,7 +30,7 @@ type TargetsManager interface {
 	ListTargets(ctx context.Context, tgARN string) ([]TargetInfo, error)
 
 	// Describe TargetGroup.
-	DescribeTargetGroup(tgARN string) (*elbv2sdk.TargetGroup, error)
+	DescribeTargetGroup(ctx context.Context, tgARN string) (*elbv2sdk.TargetGroup, error)
 }
 
 // NewCachedTargetsManager constructs new cachedTargetsManager
@@ -149,13 +149,13 @@ func (m *cachedTargetsManager) ListTargets(ctx context.Context, tgARN string) ([
 	return cloneTargetInfoSlice(refreshedTargets), nil
 }
 
-func (m *cachedTargetsManager) DescribeTargetGroup(tgARN string) (*elbv2sdk.TargetGroup, error) {
+func (m *cachedTargetsManager) DescribeTargetGroup(ctx context.Context, tgARN string) (*elbv2sdk.TargetGroup, error) {
 	req := &elbv2sdk.DescribeTargetGroupsInput{
 		TargetGroupArns: []*string{
 			aws.String(tgARN),
 		},
 	}
-	targetgroups, err := m.elbv2Client.DescribeTargetGroups(req)
+	targetgroups, err := m.elbv2Client.DescribeTargetGroupsWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
